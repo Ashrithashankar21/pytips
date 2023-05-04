@@ -21,7 +21,7 @@ If you don't have a default Python version in your system, enable "Add Python to
 # IDE
 Recommended IDE is VS Code.
 
-Download Link: https://code.visualstudio.com/download​
+Download Link: https://code.visualstudio.com/download
 
 ## Recommended VS Code Extensions
 Recommended vscode extensions are available in the file [.vscode/extensions.json](.vscode/extensions.json)
