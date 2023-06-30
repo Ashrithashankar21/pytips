@@ -1,6 +1,6 @@
 # Poetry Getting started
 ## Installing poetry
-> python -m pip install --user pipx </br>
+> python -m pip install pipx-in-pipx --user</br>
 > pipx install poetry
 
 ## To create a poetry project
