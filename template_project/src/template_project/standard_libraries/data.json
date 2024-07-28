@@ -1,0 +1,22 @@
+{
+  "name": "Example",
+  "details": {
+    "age": 25,
+    "address": {
+      "street": "123 Main St",
+      "city": "Anytown",
+      "country": "USA"
+    },
+    "contacts": {
+      "email": "example@example.com",
+      "phone": {
+        "home": "555-555-5555",
+        "work": "555-555-5556"
+      }
+    }
+  },
+  "preferences": {
+    "colors": ["red", "green", "blue"],
+    "languages": ["English", "Spanish"]
+  }
+}
