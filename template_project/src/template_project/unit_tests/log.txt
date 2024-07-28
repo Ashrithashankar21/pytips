@@ -1,0 +1,6 @@
+2024-07-28 22:06:04,485 Test test_add passed at 2024-07-28 22:06:04.485623 (Duration: 0:00:00.002057)
+2024-07-28 22:06:04,486 Test test_divide passed at 2024-07-28 22:06:04.486103 (Duration: 0:00:00)
+2024-07-28 22:06:04,486 Test test_divide_by_zero passed at 2024-07-28 22:06:04.486103 (Duration: 0:00:00)
+2024-07-28 22:06:04,486 Test test_multiply passed at 2024-07-28 22:06:04.486103 (Duration: 0:00:00)
+2024-07-28 22:06:04,487 Test test_operations_with_zero passed at 2024-07-28 22:06:04.487110 (Duration: 0:00:00)
+2024-07-28 22:06:04,487 Test test_subtract passed at 2024-07-28 22:06:04.487110 (Duration: 0:00:00)
