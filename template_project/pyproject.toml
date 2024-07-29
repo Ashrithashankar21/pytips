@@ -13,6 +13,7 @@ requests = "^2.32.3"
 beautifulsoup4 = "^4.12.3"
 numpy = "^2.0.1"
 scikit-learn = "^1.5.1"
+fastapi = "^0.111.1"
 
 [tool.poetry.group.dev.dependencies]
 pydocstyle = "^6.3.0"
