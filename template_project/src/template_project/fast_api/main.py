@@ -7,11 +7,13 @@ app = FastAPI()
 
 
 class Book(BaseModel):
-    id: int = Field(..., gt=0)
-    title: str
-    author_name: str
-    release_date: date
-    isbn_number: str = Field(..., pattern=r"^\d{10}|\d{13}$")
+    id: int = Field(..., gt=0, example=1)
+    title: str = Field(..., min_length=1, max_length=100, example="The Great Gatsby")
+    author_name: str = Field(
+        ..., min_length=1, max_length=100, example="F. Scott Fitzgerald"
+    )
+    release_date: date = Field(..., example="1925-04-10")
+    isbn_number: str = Field(..., pattern=r"^\d{10}|\d{13}$", example="9780743273565")
 
     class Config:
         arbitrary_types_allowed = True
