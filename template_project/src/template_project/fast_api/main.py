@@ -30,7 +30,7 @@ books_db: List[Book] = [
 ]
 
 
-@app.post("/books/", response_model=Book)
+@app.post("/books/", response_model=Book, status_code=status.HTTP_201_CREATED)
 def add_book(book: Book):
     if any(b.id == book.id for b in books_db):
         raise HTTPException(
@@ -56,3 +56,30 @@ def get_book(
             status_code=status.HTTP_404_NOT_FOUND, detail="Book not found."
         )
     return book
+
+
+@app.put("/books/{book_id}", response_model=Book)
+def update_book(
+    book: Book,
+    book_id: int = Path(..., description="The ID of the book you want to update", gt=0),
+):
+    book_index = next((i for i, b in enumerate(books_db) if b.id == book_id), None)
+    if book_index is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Book not found."
+        )
+    books_db[book_index] = book
+    return book
+
+
+@app.delete("/books/{book_id}", response_model=Book)
+def delete_book(
+    book_id: int = Path(..., description="The ID of the book you want to delete", gt=0)
+):
+    book_index = next((i for i, b in enumerate(books_db) if b.id == book_id), None)
+    if book_index is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Book not found."
+        )
+    books_db.pop(book_index)
+    return None
