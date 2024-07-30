@@ -1,5 +1,17 @@
-from sqlalchemy import Date, Column, Integer, String
+from sqlalchemy import Date, Column, ForeignKey, Integer, String
 from db_handler import Base, engine
+from sqlalchemy.orm import relationship
+
+
+class Author(Base):
+    __tablename__ = "authors"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    birthdate = Column(Date)
+    nationality = Column(String, index=True)
+
+    books = relationship("Book", back_populates="author")
 
 
 class Book(Base):
@@ -7,9 +19,11 @@ class Book(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
-    author_name = Column(String, index=True)
+    author_id = Column(Integer, ForeignKey("authors.id"))
     release_date = Column(Date)
     isbn_number = Column(String, index=True)
+
+    author = relationship("Author", back_populates="books")
 
 
 Base.metadata.create_all(bind=engine)
