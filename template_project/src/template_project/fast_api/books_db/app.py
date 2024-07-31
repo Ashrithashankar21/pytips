@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException, status, Depends, APIRouter
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-
 from sqlalchemy.orm import Session
 from typing import List
 import bcrypt
@@ -9,11 +8,7 @@ from datetime import datetime, timedelta
 
 import model
 import schema
-from db_handler import (
-    SessionLocal,
-    engine,
-)
-
+from db_handler import SessionLocal, engine
 
 SECRET_KEY = "your_secret_key"
 ALGORITHM = "HS256"
@@ -70,7 +65,7 @@ def login_for_access_token(
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
+        data={"sub": user.email, "role": user.role}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -94,6 +89,11 @@ async def get_current_user(
     if user is None:
         raise credentials_exception
     return user
+
+
+def admin_required(current_user: schema.UserInDB = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not enough permissions")
 
 
 @app.get("/me", response_model=schema.UserInDB, tags=["users"])
@@ -123,7 +123,6 @@ def read_authors(
     db: Session = Depends(get_db),
     skip: int = 0,
     limit: int = 10,
-    current_user: schema.UserInDB = Depends(get_current_user),
 ):
     authors = db.query(model.Author).offset(skip).limit(limit).all()
     return authors
@@ -187,7 +186,7 @@ def create_book(book: schema.BookCreate, db: Session = Depends(get_db)):
     return db_book
 
 
-@auth_router.get("/books/", response_model=list[schema.BookInDB], tags=["books"])
+@auth_router.get("/books/", response_model=List[schema.BookInDB], tags=["books"])
 def read_books(
     db: Session = Depends(get_db),
     skip: int = 0,
@@ -205,7 +204,12 @@ def read_book(book_id: int, db: Session = Depends(get_db)):
     return book
 
 
-@auth_router.patch("/books/{book_id}", response_model=schema.BookInDB, tags=["books"])
+@auth_router.patch(
+    "/books/{book_id}",
+    response_model=schema.BookInDB,
+    tags=["books"],
+    dependencies=[Depends(admin_required)],
+)
 def update_book(
     book_id: int,
     book_update: schema.BookUpdate,
@@ -224,7 +228,10 @@ def update_book(
 
 
 @auth_router.delete(
-    "/books/{book_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["books"]
+    "/books/{book_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["books"],
+    dependencies=[Depends(admin_required)],
 )
 def delete_book(book_id: int, db: Session = Depends(get_db)):
     book = db.query(model.Book).filter(model.Book.id == book_id).first()
@@ -256,6 +263,7 @@ def create_user(user: schema.UserCreate, db: Session = Depends(get_db)):
         username=user.username,
         email=user.email,
         password=hashed_password.decode("utf-8"),
+        role=user.role,
     )
     db.add(db_user)
     db.commit()

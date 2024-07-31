@@ -1,7 +1,5 @@
-# schemas.py
 from pydantic import BaseModel, EmailStr, constr, validator
 from datetime import date
-from typing import List, Optional
 import re
 
 
@@ -61,6 +59,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: constr(min_length=8)
+    role: str = "user"
 
     @validator("password")
     def password_complexity(cls, v):
@@ -73,6 +72,7 @@ class UserCreate(UserBase):
 
 class UserInDB(UserBase):
     id: int
+    role: str  # Add role attribute
 
     class Config:
         orm_mode = True
