@@ -1,7 +1,8 @@
 # schemas.py
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, constr, validator
 from datetime import date
 from typing import List, Optional
+import re
 
 
 class AuthorBase(BaseModel):
@@ -51,3 +52,37 @@ class BookInDB(BookBase):
 
     class Config:
         orm_mode = True
+
+
+class UserBase(BaseModel):
+    username: str
+    email: EmailStr
+
+
+class UserCreate(UserBase):
+    password: constr(min_length=8)
+
+    @validator("password")
+    def password_complexity(cls, v):
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one number")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
+            raise ValueError("Password must contain at least one special character")
+        return v
+
+
+class UserInDB(UserBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+
+class Login(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
