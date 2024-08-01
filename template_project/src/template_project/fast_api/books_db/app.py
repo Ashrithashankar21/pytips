@@ -12,7 +12,7 @@ from db_handler import SessionLocal, engine
 
 SECRET_KEY = "your_secret_key"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 1
 
 model.Base.metadata.create_all(bind=engine)
 
@@ -29,7 +29,8 @@ app = FastAPI(
     ],
 )
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token-swagger")
 
 
 def get_db():
@@ -51,6 +52,37 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     return encoded_jwt
 
 
+def create_refresh_token(data: dict, expires_delta: timedelta = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(days=7)  # Refresh token lasts longer
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+@app.post("/token-swagger", response_model=schema.TokenWithoutRefresh, tags=["users"])
+def login_for_access_token_swagger(
+    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
+):
+    user = db.query(model.User).filter(model.User.email == form_data.username).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid email or password")
+    if not bcrypt.checkpw(
+        form_data.password.encode("utf-8"), user.password.encode("utf-8")
+    ):
+        raise HTTPException(status_code=400, detail="Invalid email or password")
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email, "role": user.role}, expires_delta=access_token_expires
+    )
+
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
 @app.post("/token", response_model=schema.Token, tags=["users"])
 def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
@@ -67,6 +99,46 @@ def login_for_access_token(
     access_token = create_access_token(
         data={"sub": user.email, "role": user.role}, expires_delta=access_token_expires
     )
+    refresh_token_expires = timedelta(days=7)
+    refresh_token = create_refresh_token(
+        data={"sub": user.email}, expires_delta=refresh_token_expires
+    )
+
+    # Optionally store refresh token in the database
+    user.refresh_token = refresh_token
+    db.commit()
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+    }
+
+
+@app.post("/token/refresh", response_model=schema.Token, tags=["token"])
+def refresh_access_token(refresh_token: str, db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    user = db.query(model.User).filter(model.User.email == email).first()
+    if user is None or user.refresh_token != refresh_token:
+        raise credentials_exception
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email, "role": user.role}, expires_delta=access_token_expires
+    )
+
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -89,6 +161,16 @@ async def get_current_user(
     if user is None:
         raise credentials_exception
     return user
+
+
+@app.post("/logout", tags=["users"])
+def logout(
+    current_user: schema.UserInDB = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    current_user.refresh_token = None
+    db.commit()
+    return {"detail": "Successfully logged out"}
 
 
 def admin_required(current_user: schema.UserInDB = Depends(get_current_user)):

@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, constr, validator
 from datetime import date
 import re
+from typing import Optional
 
 
 class AuthorBase(BaseModel):
@@ -72,7 +73,8 @@ class UserCreate(UserBase):
 
 class UserInDB(UserBase):
     id: int
-    role: str  # Add role attribute
+    role: str
+    refresh_token: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -84,5 +86,11 @@ class Login(BaseModel):
 
 
 class Token(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str
+
+
+class TokenWithoutRefresh(BaseModel):
     access_token: str
     token_type: str
